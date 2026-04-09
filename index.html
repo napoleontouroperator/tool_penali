@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Tool Penali Catalogo PRO v18.1</title>
+<style>
+  :root{
+    --bg:#ffffff; --card:#f7f7f8; --line:#d9d9df; --text:#1f2328; --muted:#666;
+    --ok:#0a7a33; --bad:#b42318; --warn:#9a6700; --accent:#0b57d0; --hi:#fff3b0;
+    --soft:#eef4ff; --softline:#c8d7fb;
+  }
+  *{box-sizing:border-box}
+  body{font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--text);margin:0;padding:20px}
+  .wrap{max-width:1320px;margin:0 auto}
+  h1,h2,h3{margin:0 0 10px}
+  .topnote{font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.45}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px}
+  .full{grid-column:1/-1}
+  .sectionTitle,.resultHeader{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+  .badge{display:inline-block;padding:4px 8px;border-radius:999px;font-size:12px;border:1px solid var(--line);background:#fff}
+  .help,.status{font-size:12px;color:var(--muted);line-height:1.4}
+  textarea,input,button{font:inherit}
+  textarea{width:100%;border:1px solid var(--line);border-radius:8px;padding:10px;background:#fff;min-height:126px;resize:vertical}
+  .btns{display:flex;gap:8px;flex-wrap:wrap}
+  button{border:1px solid var(--line);background:#fff;border-radius:8px;padding:10px 14px;cursor:pointer}
+  button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+  button[disabled]{opacity:.5;cursor:not-allowed}
+  button.danger{color:var(--bad)}
+  .rows{margin-top:12px;min-height:220px}
+  .row{display:grid;grid-template-columns:1fr 1fr 110px auto;gap:8px;align-items:center;margin-bottom:8px}
+  .row input{width:100%;border:1px solid var(--line);border-radius:8px;padding:10px;background:#fff}
+  .row.missing input{border:2px solid #b42318;box-shadow:0 0 0 3px rgba(180,35,24,.12);background:#fff5f5}
+  .ok{color:var(--ok)} .bad{color:var(--bad)} .warn{color:var(--warn)}
+  .msg{background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:8px}
+  .msg.ok{border-color:#9fd7b0;background:#f2fbf5}
+  .msg.bad{border-color:#f0b6b6;background:#fff0f0}
+  .msg.warn{border-color:#ead9a1;background:#fff9e6}
+  .softbox{background:var(--soft);border:1px solid var(--softline);border-radius:8px;padding:10px 12px;font-size:12px;line-height:1.45;margin-top:10px}
+  table{width:100%;border-collapse:collapse;background:#fff}
+  th,td{border:1px solid var(--line);padding:8px;text-align:left;vertical-align:top}
+  th{background:#f1f3f4}
+  .hi{background:var(--hi)}
+  .catalogBox{background:#fff;border:1px solid var(--line);border-radius:8px;padding:12px;line-height:1.55;margin-bottom:14px;min-height:52px}
+  .copied{font-size:12px;color:var(--ok)}
+  .locked .row input{background:#f1f3f4;color:#666;pointer-events:none}
+  .locked .row button.danger{display:none}
+  .footerNote{margin-top:18px;text-align:center;font-size:11px;color:var(--muted)}
+  @media (max-width:980px){
+    .grid{grid-template-columns:1fr}
+    .row{grid-template-columns:1fr 1fr 90px}
+    .row button{grid-column:1/-1}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Tool Penali Catalogo PRO v18.1</h1>
+  <div class="topnote">
+    Inserisci o incolla le fasce in <b>NAPOLEON</b> e <b>STRUTTURA</b>. Il tool applica sempre la condizione peggiore tra le due,
+    verifica buchi/overlap/errori numerici e genera testo catalogo immediatamente copiabile. Tutto offline, nessuna dipendenza esterna.
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="sectionTitle">
+        <h2>NAPOLEON</h2>
+        <span class="badge">salvato nel browser</span>
+      </div>
+      <div class="help" style="margin-bottom:8px">Accetta testo libero sporco. Le righe vuote non vengono salvate.</div>
+      <label for="baseText">Testo / incolla rapido</label>
+      <textarea id="baseText" placeholder="Es.
+fino a 31 giorni 10%
+da 30 a 23 giorni 20%
+da 22 a 9 giorni 50%
+da 8 a 4 giorni 75%
+da 3 a 0 giorni 100%"></textarea>
+      <div class="btns" style="margin-top:10px">
+        <button onclick="convertTextToTable('base')">Converti in tabella</button>
+        <button onclick="sortRowsInUI('base')">Ordina righe</button>
+      </div>
+      <div id="baseRows" class="rows"></div>
+      <div class="btns" style="margin-top:10px">
+        <button id="baseAddBtn" onclick="addRow('base')">+ Aggiungi fascia</button>
+        <button id="lockToggleBtn" onclick="toggleBaseLock()">SBLOCCA</button>
+        <button id="baseSaveBtn" class="primary" onclick="saveNapoleon()">SALVA</button>
+        <button id="baseReloadBtn" onclick="reloadNapoleon()">RICARICA</button>
+      </div>
+      <div id="baseStatus" class="status"></div>
+      <div id="baseParseNotes" class="softbox" style="display:none"></div>
+    </div>
+
+    <div class="card">
+      <div class="sectionTitle">
+        <h2>STRUTTURA</h2>
+        <span class="badge">editabile</span>
+      </div>
+      <div class="help" style="margin-bottom:8px">Puoi incollare testo reale catalogo, poi correggere solo dove serve.</div>
+      <label for="structText">Testo / incolla rapido</label>
+      <textarea id="structText" placeholder="Es.
+fino a 41 giorni 0%; da 40 a 26 giorni 5%; da 25 a 9 giorni 50%; da 8 a 5 giorni 80%; da 4 a 0 giorni 100%"></textarea>
+      <div class="btns" style="margin-top:10px">
+        <button onclick="convertTextToTable('struct')">Converti in tabella</button>
+        <button onclick="sortRowsInUI('struct')">Ordina righe</button>
+      </div>
+      <div id="structRows" class="rows"></div>
+      <div class="btns" style="margin-top:10px">
+        <button onclick="addRow('struct')">+ Aggiungi fascia</button>
+        <button onclick="autofillMissingStructRows()">Completa periodi mancanti</button>
+        <button onclick="checkIntegrity()">Verifica integrità tabella</button>
+      </div>
+      <div id="structStatus" class="status"></div>
+      <div id="structParseNotes" class="softbox" style="display:none"></div>
+    </div>
+
+    <div class="card full">
+      <div class="resultHeader">
+        <h2>RISULTATO</h2>
+        <div class="btns">
+          <button id="updateBtn" class="primary" onclick="updateAll()" disabled>CREA FRASE CATALOGO</button>
+          <button onclick="copyCatalogText()">Copia testo</button>
+          <span id="copyStatus" class="copied"></span>
+        </div>
+      </div>
+      <div id="alerts" class="status" style="margin-top:0;margin-bottom:12px"></div>
+      <div id="catalogOutput" class="catalogBox"></div>
+      <div id="compareTable"></div>
+    </div>
+  </div>
+  <div class="footerNote">&copy; Marco R. 2026</div>
+</div>
+
+<script>
+const STORAGE_KEY = 'tool_penali_napoleon_v18';
+const LEGACY_STORAGE_KEYS = [
+  'tool_penali_napoleon_v17','tool_penali_napoleon_v16','tool_penali_napoleon_v15','tool_penali_napoleon_v14',
+  'tool_penali_napoleon_v13','tool_penali_napoleon_v12','tool_penali_napoleon_v11','tool_penali_napoleon_v10',
+  'tool_penali_napoleon_v9','tool_penali_napoleon_v8'
+];
+const OPEN_FROM = 999;
+let integrityOk = false;
+let baseLocked = true;
+
+function el(id){ return document.getElementById(id); }
+function esc(s){ return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function setHtml(id, html){ el(id).innerHTML = html; }
+
+function showParseNotes(kind, notes){
+  const box = el(kind + 'ParseNotes');
+  if(!notes || !notes.length){ box.style.display = 'none'; box.innerHTML = ''; return; }
+  box.style.display = '';
+  box.innerHTML = '<b>Note parser</b><br>' + notes.map(x => '• ' + esc(x)).join('<br>');
+}
+
+function parseNullableNumber(value){
+  const s = String(value ?? '').trim();
+  if(s === '') return null;
+  const n = Number(s.replace(',', '.'));
+  return Number.isFinite(n) ? n : null;
+}
+
+function isBlankRow(row){ return row.from === null && row.to === null && row.pct === null; }
+
+function readRows(kind){
+  return [...el(kind + 'Rows').children].map((r, index)=>{
+    const i = r.querySelectorAll('input');
+    return {
+      index,
+      from: parseNullableNumber(i[0].value),
+      to: parseNullableNumber(i[1].value),
+      pct: parseNullableNumber(i[2].value),
+      raw: r
+    };
+  });
+}
+
+function getRows(kind){
+  return readRows(kind)
+    .filter(r => !isBlankRow(r))
+    .filter(r => r.from !== null && r.to !== null && r.pct !== null)
+    .map(r => ({from:r.from, to:r.to, pct:r.pct}));
+}
+
+function addRow(kind, from='', to='', pct='', extraClass=''){
+  if(kind === 'base' && baseLocked) return;
+  const row = document.createElement('div');
+  row.className = 'row' + (extraClass ? ' ' + extraClass : '');
+  row.innerHTML = `
+    <input type="number" min="0" placeholder="Da giorni" value="${from}">
+    <input type="number" min="0" placeholder="A giorni" value="${to}">
+    <input type="number" min="0" max="100" placeholder="%" value="${pct}">
+    <button type="button" class="danger">Elimina</button>
+  `;
+  row.querySelector('button').onclick = () => { row.remove(); invalidate(); };
+  row.querySelectorAll('input').forEach(inp => {
+    if(kind === 'base' && baseLocked) inp.disabled = true;
+    inp.addEventListener('input', invalidate);
+  });
+  if(kind === 'base' && baseLocked) row.querySelector('button').style.display = 'none';
+  el(kind + 'Rows').appendChild(row);
+}
+
+function repopulateRows(kind, rows){
+  const wasLocked = baseLocked;
+  if(kind === 'base') baseLocked = false;
+  clearRows(kind);
+  rows.forEach(r => addRow(kind, r.from, r.to, r.pct));
+  if(kind === 'base'){
+    baseLocked = wasLocked;
+    applyBaseLockState();
+  }
+}
+
+function sortRowsInUI(kind){
+  const rows = getRows(kind).sort((a,b)=> b.from - a.from || b.to - a.to || a.pct - b.pct);
+  repopulateRows(kind, rows);
+  invalidate();
+}
+
+function invalidate(){
+  integrityOk = false;
+  el('updateBtn').disabled = true;
+  setHtml('compareTable', '');
+  setHtml('alerts', '');
+  setHtml('catalogOutput', '<b>PENALI ANNULLAMENTO:</b> ');
+  el('catalogOutput').dataset.plain = '';
+  el('copyStatus').textContent = '';
+}
+
+function clearRows(kind){
+  el(kind + 'Rows').innerHTML = '';
+  invalidate();
+}
+
+function saveNapoleon(){
+  const validation = validateRows(getRows('base'), 'NAPOLEON', {allowOpenStart:true});
+  if(!validation.ok){
+    setHtml('baseStatus', '<span class="bad">Impossibile salvare NAPOLEON: correggi prima gli errori.</span>');
+    showMessages('alerts', validation.messages, 'bad');
+    return;
+  }
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(validation.sortedRows));
+  baseLocked = true;
+  applyBaseLockState();
+  setHtml('baseStatus', '<span class="ok">NAPOLEON salvato nel browser.</span>');
+}
+
+function loadStoredNapoleon(){
+  const direct = localStorage.getItem(STORAGE_KEY);
+  if(direct) return direct;
+  for(const key of LEGACY_STORAGE_KEYS){
+    const raw = localStorage.getItem(key);
+    if(raw) return raw;
+  }
+  return null;
+}
+
+function reloadNapoleon(){
+  const raw = loadStoredNapoleon();
+  if(!raw){
+    baseLocked = false;
+    seedDefaultNapoleon();
+    saveNapoleon();
+    return;
+  }
+  baseLocked = false;
+  repopulateRows('base', JSON.parse(raw));
+  baseLocked = true;
+  applyBaseLockState();
+  setHtml('baseStatus', '<span class="ok">NAPOLEON ricaricato.</span>');
+}
+
+function seedDefaultNapoleon(){
+  repopulateRows('base', [
+    {from:OPEN_FROM,to:31,pct:10},
+    {from:30,to:23,pct:20},
+    {from:22,to:9,pct:50},
+    {from:8,to:4,pct:75},
+    {from:3,to:0,pct:100}
+  ]);
+}
+
+function wordsToNumbers(text){
+  const map = {
+    'zero':'0','uno':'1','una':'1','un':'1','due':'2','tre':'3','quattro':'4','cinque':'5','sei':'6','sette':'7','otto':'8','nove':'9',
+    'dieci':'10','undici':'11','dodici':'12','tredici':'13','quattordici':'14','quindici':'15','sedici':'16','diciassette':'17',
+    'diciotto':'18','diciannove':'19','venti':'20','trenta':'30','quaranta':'40','cinquanta':'50','sessanta':'60','settanta':'70',
+    'ottanta':'80','novanta':'90','cento':'100'
+  };
+  let out = text || '';
+  for(const [k,v] of Object.entries(map)) out = out.replace(new RegExp('\\b'+k+'\\b','gi'), v);
+  return out;
+}
+
+function normalizeInputText(text){
+  return wordsToNumbers((text || '')
+    .replace(/\\n/g, ' ')
+    .replace(/\r/g, ' ')
+    .replace(/\n/g, ' ; ')
+    .replace(/[–—−]/g, '-')
+    .replace(/,\s*(\d{1,2})\s*%/g, '.$1%')
+    .replace(/%\s*,\s*(?=(?:da\s+)?\d|fino\s+a)/gi, '% ; ')
+    .replace(/,\s*(?=(?:da\s+)?\d+\s*-\s*\d+|(?:da\s+)?\d+\s+a\s+\d+|fino\s+a)/gi, ' ; ')
+    .replace(/\bnessuna penale\b/gi, '0%')
+    .replace(/\bnessuna\b/gi, '0')
+    .replace(/\bentro\b/gi, 'fino a')
+    .replace(/\boltre\s+i\b/gi, 'fino a')
+    .replace(/\boltre\b/gi, 'fino a')
+    .replace(/\bprima del soggiorno\b/gi, 'giorni')
+    .replace(/\bprima dell[’']inizio del soggiorno\b/gi, 'giorni')
+    .replace(/\bprima dell[’']arrivo\b/gi, 'giorni')
+    .replace(/\bprima della partenza\b/gi, 'giorni')
+    .replace(/\bgiorno\b/gi, 'giorni')
+    .replace(/\bgg\.\b/gi, 'giorni')
+    .replace(/\bgg\b/gi, 'giorni')
+    .replace(/\bdal\b/gi, 'da')
+    .replace(/\bal\b/gi, 'a')
+    .replace(/\bda oggi fino a\b/gi, 'fino a')
+    .replace(/\bda oggi a\b/gi, 'fino a')
+    .replace(/\bda\s+(\d+)\s+giorni\s+in\s+poi\b/gi, 'fino a $1 giorni')
+    .replace(/\b(\d+)\s*%\s*(?=\d)/g, '$1% ; ')
+    .replace(/;/g, ' ; ')
+    .replace(/\//g, ' ; ')
+    .replace(/\bpoi\b/gi, ' ; ')
+    .replace(/\s+/g, ' ')
+    .trim());
+}
+
+function parseSegment(seg){
+  const s = seg.trim();
+  if(!s) return null;
+  let m;
+
+  m = s.match(/^fino\s+a\s+(\d+)\s+giorni(?:.*?)(\d{1,3}(?:\.\d+)?)\s*%$/i);
+  if(m) return {from:OPEN_FROM, to:+m[1], pct:+m[2]};
+
+  m = s.match(/^da\s+(\d+)\s+a\s+(\d+)\s+giorni(?:.*?)(\d{1,3}(?:\.\d+)?)\s*%$/i);
+  if(m){ const a=+m[1], b=+m[2]; return {from:Math.max(a,b), to:Math.min(a,b), pct:+m[3]}; }
+
+  m = s.match(/^(\d+)\s+a\s+(\d+)\s+giorni(?:.*?)(\d{1,3}(?:\.\d+)?)\s*%$/i);
+  if(m){ const a=+m[1], b=+m[2]; return {from:Math.max(a,b), to:Math.min(a,b), pct:+m[3]}; }
+
+  m = s.match(/^da\s+(\d+)\s+giorni(?:.*?)(\d{1,3}(?:\.\d+)?)\s*%$/i);
+  if(m) return {from:+m[1], to:0, pct:+m[2]};
+
+  m = s.match(/^(\d+)\s*-\s*(\d+)\s*(?:giorni)?\s*(?:(?:=|-)\s*)?(\d{1,3}(?:\.\d+)?)\s*%?$/i);
+  if(m){ const a=+m[1], b=+m[2]; return {from:Math.max(a,b), to:Math.min(a,b), pct:+m[3]}; }
+
+  m = s.match(/^(\d+)\s*\+\s*(?:=|-)\s*(\d{1,3}(?:\.\d+)?)\s*%?$/i);
+  if(m) return {from:OPEN_FROM, to:+m[1], pct:+m[2]};
+
+  m = s.match(/^fino\s+a\s+(\d+)\s*(?:=|-)\s*(\d{1,3}(?:\.\d+)?)\s*%?$/i);
+  if(m) return {from:OPEN_FROM, to:+m[1], pct:+m[2]};
+
+  return null;
+}
+
+function parseTextToRanges(rawText){
+  const text = normalizeInputText(rawText);
+  const prepared = text
+    .replace(/\s(?=fino\s+a\s+\d+\s+giorni)/gi, ' ; ')
+    .replace(/\s(?=da\s+\d+\s+a\s+\d+\s+giorni)/gi, ' ; ')
+    .replace(/\s(?=\d+\s+a\s+\d+\s+giorni)/gi, ' ; ')
+    .replace(/\s(?=\d+\s*-\s*\d+\s*(?:giorni)?\s*(?:=|-))/gi, ' ; ')
+    .replace(/\s(?=\d+\s*\+\s*(?:=|-))/gi, ' ; ');
+
+  const segments = prepared.split(/\s*;\s*/).map(x=>x.trim()).filter(Boolean);
+  const ranges = [];
+  const ignored = [];
+  const seen = new Set();
+
+  for(const seg of segments){
+    const parsed = parseSegment(seg);
+    if(parsed){
+      const key = `${parsed.from}|${parsed.to}|${parsed.pct}`;
+      if(!seen.has(key)){
+        seen.add(key);
+        ranges.push(parsed);
+      }
+    }else if(/\d/.test(seg) || /%/.test(seg)){
+      ignored.push(seg);
+    }
+  }
+
+  const normalized = [...ranges].sort((a,b)=> b.from - a.from || b.to - a.to || a.pct - b.pct);
+  const notes = [];
+  if(ignored.length) notes.push(`Segmenti non letti automaticamente: ${ignored.join(' | ')}`);
+  return { rows: normalized, notes };
+}
+
+function validateRows(rows, label, opts = {}){
+  const options = { allowOpenStart:true, requireEndAtZero:true, ...opts };
+  const sortedRows = [...rows].sort((a,b)=> b.from - a.from || b.to - a.to || a.pct - b.pct);
+  const messages = [];
+
+  if(!sortedRows.length){
+    messages.push(`${label}: nessuna fascia valida presente.`);
+    return {ok:false, messages, sortedRows};
+  }
+
+  sortedRows.forEach((r, idx) => {
+    const n = idx + 1;
+    if(!Number.isInteger(r.from) || !Number.isInteger(r.to)) messages.push(`${label}: riga ${n} ha giorni non interi.`);
+    if(r.from < 0 || r.to < 0) messages.push(`${label}: riga ${n} contiene valori negativi.`);
+    if(r.from < r.to) messages.push(`${label}: riga ${n} ha range invertito (${r.from}-${r.to}).`);
+    if(r.pct < 0 || r.pct > 100) messages.push(`${label}: riga ${n} ha percentuale fuori range (${r.pct}%).`);
+  });
+
+  const seen = new Set();
+  sortedRows.forEach((r, idx) => {
+    const key = `${r.from}|${r.to}|${r.pct}`;
+    if(seen.has(key)) messages.push(`${label}: riga duplicata rilevata (${r.from}-${r.to} ${r.pct}%).`);
+    seen.add(key);
+    if(idx === 0 && options.allowOpenStart && r.from < OPEN_FROM) {
+      messages.push(`${label}: la prima fascia non parte da "fino a" / intervallo aperto.`);
+    }
+  });
+
+  for(let i=0; i<sortedRows.length - 1; i++){
+    const cur = sortedRows[i];
+    const next = sortedRows[i + 1];
+
+    if(next.from === cur.to){
+      continue;
+    }
+
+    const expectedNextFrom = cur.to - 1;
+
+    if(next.from > expectedNextFrom){
+      const gapStart = next.from + 1;
+      const gapEnd = expectedNextFrom;
+      messages.push(`${label}: buco tra ${gapEnd === gapStart ? gapStart : gapEnd + '–' + gapStart}.`);
+      continue;
+    }
+    if(next.from < expectedNextFrom){
+      const overlapStart = expectedNextFrom;
+      const overlapEnd = next.from;
+      messages.push(`${label}: overlap tra ${overlapStart === overlapEnd ? overlapStart : overlapStart + '–' + overlapEnd}.`);
+    }
+  }
+
+  const last = sortedRows[sortedRows.length - 1];
+  if(options.requireEndAtZero && last.to !== 0){
+    messages.push(`${label}: l'ultima fascia non arriva a 0 giorni.`);
+  }
+
+  return {ok:messages.length === 0, messages, sortedRows};
+}
+
+function showMessages(targetId, messages, tone){
+  if(!messages || !messages.length){ setHtml(targetId, ''); return; }
+  setHtml(targetId, messages.map(m => `<div class="msg ${tone}">${esc(m)}</div>`).join(''));
+}
+
+function convertTextToTable(kind){
+  const raw = el(kind === 'base' ? 'baseText' : 'structText').value;
+  const parsed = parseTextToRanges(raw);
+  repopulateRows(kind, parsed.rows);
+  const validation = validateRows(parsed.rows, kind === 'base' ? 'NAPOLEON' : 'STRUTTURA', {allowOpenStart:true});
+  const target = kind === 'base' ? 'baseStatus' : 'structStatus';
+  const msgs = [`Fasce convertite: ${parsed.rows.length}`];
+  if(parsed.rows.length === 0) msgs.push('Nessuna fascia riconosciuta automaticamente.');
+  if(!validation.ok) msgs.push('Controlla la tabella: ci sono incoerenze da correggere.');
+  setHtml(target, msgs.map(x => `<span>${esc(x)}</span>`).join('<br>'));
+  showParseNotes(kind, parsed.notes);
+}
+
+function autofillMissingStructRows(){
+  const rows = getRows('struct').sort((a,b)=> b.from - a.from || b.to - a.to || a.pct - b.pct);
+  if(!rows.length){
+    setHtml('structStatus', '<span class="warn">Inserisci almeno una riga valida prima di completare i periodi mancanti.</span>');
+    return;
+  }
+
+  const missing = [];
+
+  const first = rows[0];
+  if(first.from < OPEN_FROM){
+    missing.push({from:OPEN_FROM, to:first.from, pct:''});
+  }
+
+  for(let i=0; i<rows.length - 1; i++){
+    const cur = rows[i];
+    const next = rows[i + 1];
+
+    if(next.from === cur.to || next.from === cur.to - 1) continue;
+
+    const missFrom = cur.to - 1;
+    const missTo = next.from + 1;
+    if(missFrom >= missTo){
+      missing.push({from:missFrom, to:missTo, pct:''});
+    }
+  }
+
+  const last = rows[rows.length - 1];
+  if(last.to > 0){
+    missing.push({from:last.to - 1, to:0, pct:''});
+  }
+
+  const dedup = [];
+  const seen = new Set();
+  for(const r of missing){
+    const key = `${r.from}|${r.to}`;
+    if(r.from >= r.to && !seen.has(key)){
+      seen.add(key);
+      dedup.push(r);
+    }
+  }
+
+  if(!dedup.length){
+    setHtml('structStatus', '<span class="ok">Nessun periodo mancante da creare.</span>');
+    return;
+  }
+
+  const merged = [...rows, ...dedup].sort((a,b)=> b.from - a.from || b.to - a.to);
+  clearRows('struct');
+  merged.forEach(r => {
+    const isMissing = r.pct === '';
+    addRow('struct', r.from, r.to, r.pct, isMissing ? 'missing' : '');
+  });
+
+  setHtml('structStatus', '<span class="warn">Sono stati creati automaticamente i periodi mancanti, inclusi gli estremi. Inserisci la percentuale nelle righe evidenziate.</span>');
+}
+
+function buildMap(rows){
+  const map = {};
+  const overlaps = [];
+  for(const r of rows){
+    for(let d=r.from; d>=r.to; d--){
+      if(!map[d]) map[d] = [];
+      map[d].push(r.pct);
+      if(map[d].length > 1) overlaps.push(d);
+    }
+  }
+  const final = {};
+  Object.keys(map).forEach(k => final[+k] = Math.max(...map[k]));
+  return {map:final, overlaps:[...new Set(overlaps)].sort((a,b)=>b-a)};
+}
+
+function compactCompare(baseMap, structMap){
+  const segs = [];
+  let prev = null, start = null;
+  for(let d=OPEN_FROM; d>=0; d--){
+    const obj = {
+      base: baseMap[d],
+      struct: structMap[d],
+      final: Math.max(baseMap[d] ?? 0, structMap[d] ?? 0),
+      worse: structMap[d] !== undefined && (baseMap[d] === undefined || structMap[d] > baseMap[d])
+    };
+    const key = JSON.stringify(obj);
+    if(key !== prev){
+      if(prev !== null) segs.push({from:start, to:d+1, ...JSON.parse(prev)});
+      start = d;
+      prev = key;
+    }
+  }
+  if(prev !== null) segs.push({from:start, to:0, ...JSON.parse(prev)});
+  return segs.filter(s => s.base !== undefined || s.struct !== undefined);
+}
+
+function rangeLabel(from,to){
+  if(from >= OPEN_FROM) return `fino a ${to}`;
+  if(from === to) return `${from}`;
+  return `${from}-${to}`;
+}
+
+function rangeLabelCatalog(from,to){
+  if(from >= OPEN_FROM) return `fino a ${to} giorni prima dell’inizio del soggiorno`;
+  if(from === to) return `${from} giorni prima dell’inizio del soggiorno`;
+  return `da ${from} a ${to} giorni prima dell’inizio del soggiorno`;
+}
+
+function buildFinalSegments(baseMap, structMap){
+  const finalMap = {};
+  for(let d=OPEN_FROM; d>=0; d--){
+    if(baseMap[d] !== undefined || structMap[d] !== undefined){
+      finalMap[d] = Math.max(baseMap[d] ?? 0, structMap[d] ?? 0);
+    }
+  }
+  const segs = [];
+  let prev = null, start = null;
+  for(let d=OPEN_FROM; d>=0; d--){
+    const pct = finalMap[d];
+    if(pct === undefined) continue;
+    if(pct !== prev){
+      if(prev !== null) segs.push({from:start, to:d+1, pct:prev});
+      start = d;
+      prev = pct;
+    }
+  }
+  if(prev !== null) segs.push({from:start, to:0, pct:prev});
+  return segs;
+}
+
+function findGeneralConditionsCutoff(baseMap, structMap){
+  for(let d=OPEN_FROM; d>=0; d--){
+    const b = baseMap[d];
+    const s = structMap[d];
+    if(b === undefined) continue;
+    if(s !== b) return d;
+  }
+  return null;
+}
+
+function buildCatalogPlain(baseMap, structMap){
+  const finalSegs = buildFinalSegments(baseMap, structMap);
+  const parts = [];
+  const cgCutoff = findGeneralConditionsCutoff(baseMap, structMap);
+
+  if(cgCutoff !== null){
+    parts.push(`fino a ${cgCutoff} giorni prima dell’inizio del soggiorno come da Condizioni Generali`);
+  } else {
+    return 'PENALI ANNULLAMENTO: come da Condizioni Generali.';
+  }
+
+  for(const s of finalSegs){
+    if(s.from >= OPEN_FROM) continue;
+
+    let from = s.from;
+    const to = s.to;
+
+    if(from === cgCutoff){
+      from = cgCutoff - 1;
+    }
+
+    if(from < to) continue;
+    parts.push(`${rangeLabelCatalog(from, to)} ${s.pct}%`);
+  }
+
+  return `PENALI ANNULLAMENTO: ${parts.join('; ')}.`;
+}
+
+function buildCatalogText(baseMap, structMap){
+  return `<b>PENALI ANNULLAMENTO:</b> ${esc(buildCatalogPlain(baseMap, structMap).replace(/^PENALI ANNULLAMENTO:\s*/, '').replace(/\.$/, ''))}.`;
+}
+
+function checkIntegrity(){
+  const baseRows = getRows('base');
+  const structRows = getRows('struct');
+  const baseValidation = validateRows(baseRows, 'NAPOLEON', {allowOpenStart:true});
+  const structValidation = validateRows(structRows, 'STRUTTURA', {allowOpenStart:true});
+
+  const structMessages = structValidation.ok
+    ? ['✓ Integrità tabella STRUTTURA OK. Ora puoi cliccare CREA FRASE CATALOGO.']
+    : structValidation.messages;
+  setHtml('structStatus', structMessages.map(m => `<span class="${structValidation.ok ? 'ok' : 'bad'}">${esc(m)}</span>`).join('<br>'));
+
+  if(!baseValidation.ok){
+    setHtml('baseStatus', baseValidation.messages.map(m => `<span class="bad">${esc(m)}</span>`).join('<br>'));
+  }
+
+  integrityOk = baseValidation.ok && structValidation.ok;
+  el('updateBtn').disabled = !integrityOk;
+
+  if(!integrityOk){
+    setHtml('compareTable', '');
+    setHtml('catalogOutput', '<b>PENALI ANNULLAMENTO:</b> ');
+    el('catalogOutput').dataset.plain = '';
+    showMessages('alerts', [...baseValidation.messages, ...structValidation.messages], 'bad');
+  } else {
+    showMessages('alerts', ['Nessun conflitto logico rilevato.'], 'ok');
+  }
+}
+
+function copyCatalogText(){
+  const text = el('catalogOutput').dataset.plain || '';
+  if(!text) return;
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(()=>{
+      el('copyStatus').textContent = 'Copiato';
+      setTimeout(()=> el('copyStatus').textContent = '', 1500);
+    }).catch(()=>fallbackCopy(text));
+  } else {
+    fallbackCopy(text);
+  }
+}
+
+function fallbackCopy(text){
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  document.body.appendChild(ta);
+  ta.select();
+  try{
+    document.execCommand('copy');
+    el('copyStatus').textContent = 'Copiato';
+  }catch(e){
+    el('copyStatus').textContent = 'Copia manuale necessaria';
+  }
+  setTimeout(()=> el('copyStatus').textContent = '', 1500);
+  ta.remove();
+}
+
+function updateAll(){
+  if(!integrityOk) return;
+  const baseBuilt = buildMap(getRows('base'));
+  const structBuilt = buildMap(getRows('struct'));
+  const segs = compactCompare(baseBuilt.map, structBuilt.map);
+
+  showMessages('alerts', ['Nessun conflitto logico rilevato.'], 'ok');
+
+  let html = '<table><thead><tr><th>Giorni</th><th>NAPOLEON</th><th>STRUTTURA</th><th>CORRETTO</th></tr></thead><tbody>';
+  for(const s of segs){
+    html += `<tr>
+      <td>${esc(rangeLabel(s.from,s.to))}</td>
+      <td>${s.base !== undefined ? esc(s.base + '%') : '—'}</td>
+      <td class="${s.worse ? 'hi' : ''}">${s.struct !== undefined ? esc(s.struct + '%') : '—'}</td>
+      <td class="${s.worse ? 'hi' : ''}"><b>${esc(s.final + '%')}</b></td>
+    </tr>`;
+  }
+  html += '</tbody></table>';
+  setHtml('compareTable', html);
+
+  const plain = buildCatalogPlain(baseBuilt.map, structBuilt.map);
+  el('catalogOutput').dataset.plain = plain;
+  setHtml('catalogOutput', buildCatalogText(baseBuilt.map, structBuilt.map));
+}
+
+function applyBaseLockState(){
+  const box = el('baseRows');
+  const addBtn = el('baseAddBtn');
+  const saveBtn = el('baseSaveBtn');
+  const reloadBtn = el('baseReloadBtn');
+  const toggleBtn = el('lockToggleBtn');
+
+  if(baseLocked){
+    box.classList.add('locked');
+    if(addBtn) addBtn.disabled = true;
+    if(saveBtn) saveBtn.disabled = true;
+    if(reloadBtn) reloadBtn.disabled = false;
+    if(toggleBtn) toggleBtn.textContent = 'SBLOCCA';
+  } else {
+    box.classList.remove('locked');
+    if(addBtn) addBtn.disabled = false;
+    if(saveBtn) saveBtn.disabled = false;
+    if(reloadBtn) reloadBtn.disabled = false;
+    if(toggleBtn) toggleBtn.textContent = 'BLOCCA';
+  }
+
+  [...box.children].forEach(row => {
+    const inputs = row.querySelectorAll('input');
+    const del = row.querySelector('button.danger');
+    inputs.forEach(inp => inp.disabled = baseLocked);
+    if(del) del.style.display = baseLocked ? 'none' : '';
+  });
+}
+
+function toggleBaseLock(){
+  baseLocked = !baseLocked;
+  applyBaseLockState();
+  setHtml('baseStatus', baseLocked
+    ? '<span class="ok">NAPOLEON bloccato.</span>'
+    : '<span class="warn">NAPOLEON sbloccato. Le modifiche non vengono salvate finché non clicchi "SALVA".</span>');
+}
+
+(function init(){
+  const raw = loadStoredNapoleon();
+  if(raw){
+    baseLocked = false;
+    repopulateRows('base', JSON.parse(raw));
+    setHtml('baseStatus', '<span class="ok">NAPOLEON ricaricato.</span>');
+  } else {
+    baseLocked = false;
+    seedDefaultNapoleon();
+    saveNapoleon();
+  }
+
+  clearRows('struct');
+  for(let i=0;i<5;i++) addRow('struct');
+  ['baseText','structText'].forEach(id => {
+    el(id).addEventListener('input', invalidate);
+    el(id).addEventListener('paste', () => setTimeout(invalidate, 0));
+  });
+  setHtml('catalogOutput', '<b>PENALI ANNULLAMENTO:</b> ');
+  el('catalogOutput').dataset.plain = '';
+  el('updateBtn').disabled = true;
+  baseLocked = true;
+  applyBaseLockState();
+})();
+</script>
+</body>
+</html>
