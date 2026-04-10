@@ -597,8 +597,15 @@ function findGeneralConditionsCutoff(baseMap, structMap){
   for(let d=OPEN_FROM; d>=0; d--){
     const b = baseMap[d];
     const s = structMap[d];
+
     if(b === undefined) continue;
-    if(s !== b) return d;
+
+    // 🔥 usa la logica reale: solo se struttura peggiora
+    const final = Math.max(b ?? 0, s ?? 0);
+
+    if(final !== b){
+      return d;
+    }
   }
   return null;
 }
