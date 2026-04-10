@@ -615,24 +615,30 @@ function buildCatalogPlain(baseMap, structMap){
   const parts = [];
   const cgCutoff = findGeneralConditionsCutoff(baseMap, structMap);
 
-  if(cgCutoff !== null){
-    parts.push(`fino a ${cgCutoff} giorni prima dell’inizio del soggiorno come da Condizioni Generali`);
-  } else {
+  // nessuna differenza reale rispetto a NAPOLEON
+  if(cgCutoff === null){
     return 'PENALI ANNULLAMENTO: come da Condizioni Generali.';
   }
 
+  // verifica se il peggioramento parte già dalla fascia aperta iniziale
+  const firstRelevantSeg = finalSegs.find(s => s.pct !== undefined);
+  const startsFromOpenRange = firstRelevantSeg && firstRelevantSeg.from >= OPEN_FROM && cgCutoff === firstRelevantSeg.from;
+
+  if(!startsFromOpenRange){
+    parts.push(`fino a ${cgCutoff} giorni prima dell’inizio del soggiorno come da Condizioni Generali`);
+  }
+
   for(const s of finalSegs){
-    if(s.from >= OPEN_FROM) continue;
-
-    // salta i segmenti interamente già coperti dalle Condizioni Generali
-    if(s.to >= cgCutoff) continue;
-
     let from = s.from;
     const to = s.to;
 
-    // se il segmento attraversa il cutoff, parte dal giorno successivo
-    if(from >= cgCutoff){
-      from = cgCutoff - 1;
+    // se c'è la parte CG, salta ciò che è già coperto
+    if(!startsFromOpenRange){
+      if(s.from >= OPEN_FROM) continue;
+      if(s.to >= cgCutoff) continue;
+      if(from >= cgCutoff){
+        from = cgCutoff - 1;
+      }
     }
 
     if(from < to) continue;
