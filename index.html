@@ -603,14 +603,16 @@ function buildFinalSegments(baseMap, structMap){
 }
 
 function findGeneralConditionsCutoff(baseMap, structMap){
-  for(let d=OPEN_FROM; d>=0; d--){
+  for(let d = OPEN_FROM; d >= 0; d--){
     const b = baseMap[d];
-    const s = structMap[d];
-
     if(b === undefined) continue;
 
+    const s = structMap[d];
     const final = Math.max(b ?? 0, s ?? 0);
-    if(final !== b) return d;
+
+    if(final !== b){
+      return d; // primo giorno in cui il CORRETTO differisce da NAPOLEON
+    }
   }
   return null;
 }
@@ -618,28 +620,36 @@ function findGeneralConditionsCutoff(baseMap, structMap){
 function buildCatalogPlain(baseMap, structMap){
   const finalSegs = buildFinalSegments(baseMap, structMap);
   const parts = [];
-  const cgCutoff = findGeneralConditionsCutoff(baseMap, structMap);
+  const firstDiffDay = findGeneralConditionsCutoff(baseMap, structMap);
 
-  if(cgCutoff === null){
+  if(firstDiffDay === null){
     return 'PENALI ANNULLAMENTO: come da Condizioni Generali.';
   }
 
-  const startsFromOpenRange = cgCutoff >= 31;
+  const noGeneralConditions = (firstDiffDay >= OPEN_FROM);
 
-  if(!startsFromOpenRange){
-    parts.push(`fino a ${cgCutoff} giorni prima dell’inizio del soggiorno come da Condizioni Generali`);
+  if(!noGeneralConditions){
+    const cgUntil = firstDiffDay + 1;
+    parts.push(`fino a ${cgUntil} giorni prima dell’inizio del soggiorno come da Condizioni Generali`);
   }
 
   for(const s of finalSegs){
     let from = s.from;
     const to = s.to;
 
-    if(!startsFromOpenRange){
-      if(s.from >= OPEN_FROM) continue;
-      if(s.to >= cgCutoff) continue;
-      if(from >= cgCutoff){
-        from = cgCutoff - 1;
-      }
+    if(noGeneralConditions){
+      if(from < to) continue;
+      parts.push(`${rangeLabelCatalog(from, to)} ${s.pct}%`);
+      continue;
+    }
+
+    // salta i segmenti completamente sopra il primo giorno diverso
+    if(to > firstDiffDay) continue;
+
+    // se il segmento parte esattamente dal primo giorno diverso, lo mantiene
+    // se per qualche motivo parte sopra, lo taglia correttamente al primo giorno diverso
+    if(from > firstDiffDay){
+      from = firstDiffDay;
     }
 
     if(from < to) continue;
