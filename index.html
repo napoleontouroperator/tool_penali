@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Tool Penali Catalogo PRO v2.0</title>
+<title>Tool Penali Catalogo PRO v2.1</title>
 <style>
   :root{
     --bg:#ffffff; --card:#f7f7f8; --line:#d9d9df; --text:#1f2328; --muted:#666;
@@ -56,7 +56,7 @@
 </head>
 <body>
 <div class="wrap">
-  <h1>Tool Penali Catalogo PRO v2.0</h1>
+  <h1>Tool Penali Catalogo PRO v2.1</h1>
   <div class="topnote">
     Inserisci o incolla le fasce in <b>NAPOLEON</b> e <b>STRUTTURA</b>. Il tool applica sempre la condizione peggiore tra le due,
     verifica buchi/overlap/errori numerici e genera testo catalogo immediatamente copiabile. Tutto offline, nessuna dipendenza esterna.
@@ -83,6 +83,7 @@ da 3 a 0 giorni 100%"></textarea>
       <div id="baseRows" class="rows"></div>
       <div class="btns" style="margin-top:10px">
         <button id="baseAddBtn" onclick="addRow('base')">+ Aggiungi fascia</button>
+        <button id="baseStandardBtn" onclick="loadStandardNapoleon()">CARICA STANDARD</button>
         <button id="lockToggleBtn" onclick="toggleBaseLock()">SBLOCCA</button>
         <button id="baseSaveBtn" class="primary" onclick="saveNapoleon()">SALVA</button>
         <button id="baseReloadBtn" onclick="reloadNapoleon()">RICARICA</button>
@@ -271,14 +272,24 @@ function reloadNapoleon(){
   setHtml('baseStatus', '<span class="ok">NAPOLEON ricaricato.</span>');
 }
 
-function seedDefaultNapoleon(){
-  repopulateRows('base', [
+function standardNapoleonRows(){
+  return [
     {from:OPEN_FROM,to:31,pct:10},
     {from:30,to:23,pct:20},
     {from:22,to:9,pct:50},
     {from:8,to:4,pct:75},
     {from:3,to:0,pct:100}
-  ]);
+  ];
+}
+
+function seedDefaultNapoleon(){
+  repopulateRows('base', standardNapoleonRows());
+}
+
+function loadStandardNapoleon(){
+  if(baseLocked) return;
+  repopulateRows('base', standardNapoleonRows());
+  setHtml('baseStatus', '<span class="warn">Condizioni Generali standard caricate. Verifica e clicca SALVA per renderle definitive.</span>');
 }
 
 function wordsToNumbers(text){
@@ -575,9 +586,9 @@ function rangeLabel(from,to){
 }
 
 function rangeLabelCatalog(from,to){
-  if(from >= OPEN_FROM) return `fino a ${to} giorni prima dell’inizio del soggiorno`;
-  if(from === to) return `${from} giorni prima dell’inizio del soggiorno`;
-  return `da ${from} a ${to} giorni prima dell’inizio del soggiorno`;
+  if(from >= OPEN_FROM) return `fino a ${to} giorni prima dell’arrivo`;
+  if(from === to) return `${from} giorni prima dell’arrivo`;
+  return `da ${from} a ${to} giorni prima dell’arrivo`;
 }
 
 function buildFinalSegments(baseMap, structMap){
@@ -630,7 +641,7 @@ function buildCatalogPlain(baseMap, structMap){
 
   if(!noGeneralConditions){
     const cgUntil = firstDiffDay + 1;
-    parts.push(`fino a ${cgUntil} giorni prima dell’inizio del soggiorno come da Condizioni Generali`);
+    parts.push(`fino a ${cgUntil} giorni prima dell’arrivo come da Condizioni Generali`);
   }
 
   for(const s of finalSegs){
@@ -747,6 +758,7 @@ function updateAll(){
 function applyBaseLockState(){
   const box = el('baseRows');
   const addBtn = el('baseAddBtn');
+  const standardBtn = el('baseStandardBtn');
   const saveBtn = el('baseSaveBtn');
   const reloadBtn = el('baseReloadBtn');
   const toggleBtn = el('lockToggleBtn');
@@ -754,12 +766,14 @@ function applyBaseLockState(){
   if(baseLocked){
     box.classList.add('locked');
     if(addBtn) addBtn.disabled = true;
+    if(standardBtn) standardBtn.disabled = true;
     if(saveBtn) saveBtn.disabled = true;
     if(reloadBtn) reloadBtn.disabled = false;
     if(toggleBtn) toggleBtn.textContent = 'SBLOCCA';
   } else {
     box.classList.remove('locked');
     if(addBtn) addBtn.disabled = false;
+    if(standardBtn) standardBtn.disabled = false;
     if(saveBtn) saveBtn.disabled = false;
     if(reloadBtn) reloadBtn.disabled = false;
     if(toggleBtn) toggleBtn.textContent = 'BLOCCA';
