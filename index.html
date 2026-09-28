@@ -83,7 +83,7 @@ da 3 a 0 giorni 100%"></textarea>
       <div id="baseRows" class="rows"></div>
       <div class="btns" style="margin-top:10px">
         <button id="baseAddBtn" onclick="addRow('base')">+ Aggiungi fascia</button>
-        <button id="baseStandardBtn" onclick="loadStandardNapoleon()">CARICA STANDARD</button>
+        <button id="baseStandardBtn" onclick="loadStandardNapoleon()">STANDARD</button>
         <button id="lockToggleBtn" onclick="toggleBaseLock()">SBLOCCA</button>
         <button id="baseSaveBtn" class="primary" onclick="saveNapoleon()">SALVA</button>
         <button id="baseReloadBtn" onclick="reloadNapoleon()">RICARICA</button>
@@ -287,9 +287,8 @@ function seedDefaultNapoleon(){
 }
 
 function loadStandardNapoleon(){
-  if(baseLocked) return;
   repopulateRows('base', standardNapoleonRows());
-  setHtml('baseStatus', '<span class="warn">Condizioni Generali standard caricate. Verifica e clicca SALVA per renderle definitive.</span>');
+  setHtml('baseStatus', '<span class="ok">Condizioni Generali standard caricate.</span>');
 }
 
 function wordsToNumbers(text){
@@ -766,7 +765,6 @@ function applyBaseLockState(){
   if(baseLocked){
     box.classList.add('locked');
     if(addBtn) addBtn.disabled = true;
-    if(standardBtn) standardBtn.disabled = true;
     if(saveBtn) saveBtn.disabled = true;
     if(reloadBtn) reloadBtn.disabled = false;
     if(toggleBtn) toggleBtn.textContent = 'SBLOCCA';
